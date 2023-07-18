@@ -1,11 +1,7 @@
 """
 
     ProjExD 共同開発
-<<<<<<< HEAD
-    上書き
-=======
     ・・・
->>>>>>> C0B22166/end
 
 """
 # import module
@@ -16,7 +12,6 @@ import numpy as np
 import time
 
 
-<<<<<<< HEAD
 class Goal:
     """
     ゴールできます
@@ -55,8 +50,6 @@ class Status:#残り時間を表示
         return False
 
 
-=======
->>>>>>> C0B22166/end
 # class objects
 class Field:
     """
@@ -185,19 +178,13 @@ def main(screen: pg.Surface, screen_size: np.array) -> bool | None:
     """
     # setup variables
     clock = pg.time.Clock()
-<<<<<<< HEAD
     tmr = 0
     time_limit = 50*10
-=======
->>>>>>> C0B22166/end
 
     # setup Surface
     fields: list[Field] = []
     chara = Character()
-<<<<<<< HEAD
     timer = Status(time_limit)
-=======
->>>>>>> C0B22166/end
 
     # fields make
     unit = Field.field_unit
@@ -210,11 +197,8 @@ def main(screen: pg.Surface, screen_size: np.array) -> bool | None:
          Field(np.array((15, 3, 1, 3)) * block)
          ]
 
-<<<<<<< HEAD
     goal = Goal([24 * block + 5, 1 * block])
 
-=======
->>>>>>> C0B22166/end
     # fields setup
     for field_add in field_adds:
         fields.append(field_add)
@@ -230,11 +214,7 @@ def main(screen: pg.Surface, screen_size: np.array) -> bool | None:
         for event in pg.event.get():
             # quit process
             if event.type == pg.QUIT:
-<<<<<<< HEAD
                 end(False, screen)
-=======
-                
->>>>>>> C0B22166/end
                 return
 
             # reboot process
@@ -250,33 +230,24 @@ def main(screen: pg.Surface, screen_size: np.array) -> bool | None:
 
         # update
         chara.update(fields)
-<<<<<<< HEAD
         if timer.update(tmr):
             end(False)
             return
         if goal.do_goal(chara.rect):
             end(True)#clear!いえーい
             return
-=======
->>>>>>> C0B22166/end
 
         # draw
         screen.fill("white", (0, 0, 1000, 600))
         for field in fields:
             field.draw(screen)
-<<<<<<< HEAD
         timer.draw(screen)
         goal.draw(screen)
-=======
->>>>>>> C0B22166/end
         chara.draw(screen)
         pg.display.update()
 
         # tike process
-<<<<<<< HEAD
         tmr += 1
-=======
->>>>>>> C0B22166/end
         clock.tick(50)
     return
 
