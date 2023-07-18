@@ -91,7 +91,6 @@ class Character:
     chara_rect = np.array((20, 500, field_unit*4, field_unit*4))
     down_speed = np.array((0, field_unit))
     move_speed = np.array((field_unit, 0))
-
     effect_rect = np.array((0, 0, field_unit, field_unit))
     effect_time = 25
 
@@ -107,14 +106,12 @@ class Character:
         self.effects = list()
         self.remove_alpha = 255//self.effect_time
         self.effect_freq = effect_freq
+        self.jump_time = 0
+        self.jump_poss = False
         return
 
     def update(self, fields: list) -> None:
         """"""
-        self.rect[:-2] = np.array(self.rect[:-2]) + self.down_speed
-        for field in fields:
-            if field.get_rect().colliderect(self.rect):
-                self.rect[:-2] = np.array(self.rect[:-2]) - self.down_speed
         # effect process
         #  effect create
         if random.randint(0, self.effect_freq-1) == 0:
@@ -130,6 +127,23 @@ class Character:
             self.effects[i][1].set_alpha(self.effects[i][0])
         if len(self.effects) > 0 > self.effects[0][0]:
             del self.effects[0]
+
+        if self.jump_time <= 0 :
+            self.rect[:-2] = np.array(self.rect[:-2]) + self.down_speed
+            for field in fields:
+                if field.get_rect().colliderect(self.rect):
+                    self.rect[:-2] = np.array(self.rect[:-2]) - self.down_speed
+                    self.jump_poss = True
+        else:
+            self.rect[:-2] = np.array(self.rect[:-2]) - self.down_speed
+        self.jump_time -= 1
+
+        return
+    
+    def jump(self):
+        if self.jump_poss:
+            self.jump_time = 10
+            self.jump_poss = False
         return
 
     def move(self, LR: str, fields: list) -> None:
@@ -139,6 +153,7 @@ class Character:
             move = self.move_speed * -1
         elif LR == "R":
             move = self.move_speed
+
         self.rect[:-2] = self.rect[:-2] + move
         for field in fields:
             if field.get_rect().colliderect(self.rect):
@@ -150,6 +165,51 @@ class Character:
         screen.blit(self.image, self.rect)
         for effect in self.effects:
             screen.blit(effect[1], effect[2])
+        return
+    
+class Enemy(pg.sprite.Sprite):
+    """
+        class about Enemy
+    """
+    enemy_size = np.array((30, 30))
+    enemy_down_speed = np.array((0, 5))
+    enemy_speed = 5
+    
+    def __init__(self,x,y):
+        """
+            敵Surfaceを生成する
+        """
+        super().__init__()
+        self.image = pg.Surface(self.enemy_size)
+        pg.draw.rect(self.image, (255, 0, 0), (0, 0, *self.enemy_size))
+        self.rect = self.image.get_rect()
+        self.rect.center = x,y
+        return
+    
+    def update(self, fields: list) -> None:
+        """
+            敵の位置を更新する
+        """
+        self.rect[:-2] = np.array(self.rect[:-2]) + self.enemy_down_speed
+        for field in fields:
+            if field.get_rect().colliderect(self.rect):
+                self.rect[:-2] = np.array(self.rect[:-2]) - self.enemy_down_speed
+                self.rect.move_ip(+self.enemy_speed, 0)
+                will_rect = self.rect.copy()
+                will_rect.move_ip(+self.enemy_speed, 0)
+                if field.get_rect().colliderect(will_rect):
+                    self.rect[:-2] = np.array(self.rect[:-2]) + self.enemy_down_speed
+                    self.rect.move_ip(-self.enemy_speed*2, 0)
+                    self.enemy_speed *= -1
+
+        return
+    
+    
+    def draw(self, screen: pg.Surface) -> None:
+        """
+            敵の描画
+        """
+        screen.blit(self.image, self.rect)
         return
 
 
@@ -179,7 +239,7 @@ def main(screen: pg.Surface, screen_size: np.array) -> bool | None:
     # setup variables
     clock = pg.time.Clock()
     tmr = 0
-    time_limit = 50*10
+    time_limit = 50*13
 
     # setup Surface
     fields: list[Field] = []
@@ -189,13 +249,27 @@ def main(screen: pg.Surface, screen_size: np.array) -> bool | None:
     # fields make
     unit = Field.field_unit
     block = unit * 8
-    field_adds = \
-        [Field(np.array((0, 0, 16, 3)) * block),
-         Field(np.array((21, 0, 5, 3)) * block),
-         Field(np.array((4, 1, 1, 1)) * block),
-         Field(np.array((7, 3, 3, 1)) * block),
-         Field(np.array((15, 3, 1, 3)) * block)
-         ]
+    block_list = ((0, 0, 13, 3), (14, 0, 6, 3), (22, 0, 3, 3),
+                  (2, 1, 3, 1), (3, 2, 2, 1), (4, 3, 1, 1),
+                  (7, 3, 4, 1), (9, 4, 2, 1), (10, 5, 1, 1),
+                  (12, 6, 1, 1), (17, 6, 1, 1),
+                  (12, 5, 6, 1), (19, 6, 2, 1), (20, 7, 3, 1),
+                  (12, 1, 1, 1), (14, 1, 1, 1), (19, 1, 1, 1))
+    
+    block_list_omake =((2, 4, 1, 1), (0, 5, 1, 1), (2, 6, 1, 1), (0, 7, 1, 1),
+                       (2, 8, 1, 1), (0, 9, 1, 1), (2, 10, 1, 1), (0, 11, 1, 1),
+                       (2, 12, 1, 1), (0, 13, 1, 1), (2, 14, 22, 1))#これはおまけブロック。
+    field_adds = []
+    for i in block_list:
+        field_adds.append(Field(np.array(i) * block))
+
+    enemys = pg.sprite.Group()
+    enemys.add(Enemy(6*block, 1*block))
+    enemys.add(Enemy(18*block+20, 1*block))
+    enemys.add(Enemy(14*block, 1*block))
+        
+    #for i in block_list_omake:  #おまけ。
+    #    field_adds.append(Field(np.array(i) * block))
 
     goal = Goal([24 * block + 5, 1 * block])
 
@@ -228,14 +302,25 @@ def main(screen: pg.Surface, screen_size: np.array) -> bool | None:
         if key_pressed[pg.K_RIGHT]:
             chara.move("R", fields)
 
+        for enemy in enemys:
+            if pg.sprite.spritecollide(chara, enemys, True):
+                if not(chara.rect.bottom <= enemy.rect.top + 5):
+                    end(False, screen)
+                    return
+
+        if event.type == pg.KEYDOWN and key_pressed[pg.K_UP]:
+            chara.jump()
+
         # update
         chara.update(fields)
         if timer.update(tmr):
-            end(False)
+            end(False, screen)
             return
         if goal.do_goal(chara.rect):
-            end(True)#clear!いえーい
+            end(True, screen)#clear!いえーい
             return
+
+        enemys.update(fields)
 
         # draw
         screen.fill("white", (0, 0, 1000, 600))
@@ -244,6 +329,7 @@ def main(screen: pg.Surface, screen_size: np.array) -> bool | None:
         timer.draw(screen)
         goal.draw(screen)
         chara.draw(screen)
+        enemys.draw(screen)
         pg.display.update()
 
         # tike process
